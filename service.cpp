@@ -22,6 +22,7 @@
 
 #include "Messages.h"
 #include "Game.h"
+#include "rapidjson/writer.h"
 
 /// Can be used to store game state
 std::unique_ptr<Game> game;
@@ -102,7 +103,7 @@ void Service::start()
       rw->write(js);
     }    
     else if(req->uri() == "/static/css/main.78b50556.css") {
-      auto& disk = fs::memdisk();      
+      auto& disk = fs::memdisk();
       auto cssfile = disk.fs().read_file("/static/css/main.78b50556.css");
       Expects(cssfile.is_valid());
       Chunk css{cssfile.data(), cssfile.size()};          
@@ -128,10 +129,30 @@ void Service::start()
   // Start listening on port 80
   server->listen(80);
 
+  Timers::periodic(5s, 15s, [&inet](uint32_t) {
+      for(auto& ws : websockets) {
+          auto moveAndPlayer = game->end_turn();
+
+          rapidjson::Document doc;
+          doc.SetObject();
+          auto& alloc = doc.GetAllocator();
+          rapidjson::Value res_type;
+          res_type.SetString("round ended");
+          doc.AddMember("type", res_type, alloc);
+          doc.AddMember("move", moveAndPlayer.first, alloc);
+          doc.AddMember("team", moveAndPlayer.second, alloc);
+          rapidjson::StringBuffer buffer;
+          rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+          doc.Accept(writer);
+
+          ws.second->write(buffer.GetString());
+      }
+  });
+
   // Start a new round every 10 seconds
   // TBD...
   // For example:
-  // Timers::periodic(5s, 10s,
+  // Timers::periodic(5s, 10 s,
   //   [&inet] (uint32_t) {
   //     broadcast_round_end();
   //   });    

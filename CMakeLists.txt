@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+  set(ENV{INCLUDEOS_PREFIX} /home/narn/includeos)
 endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
